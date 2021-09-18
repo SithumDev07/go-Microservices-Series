@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"log"
 	"net/http"
 	"strconv"
@@ -30,17 +31,15 @@ func (p *Products) GetProducts(rw http.ResponseWriter, req *http.Request) {
 
 
 // * POST
-func (p *Products) addProduct(rw http.ResponseWriter, req *http.Request) {
-	product := &data.Product{}
-	err := product.FromJSON(req.Body)
-	if err != nil {
-		http.Error(rw, "Unable to unmarshal json", http.StatusBadRequest)
-	}
-	data.AddProduct(product)
+func (p *Products) AddProduct(res http.ResponseWriter, req *http.Request) {
+
+	p.l.Println("Handling POST Request")
+
+	product := req.Context().Value(KeyProduct{}).(data.Product)
+	data.AddProduct(&product)
 }
 
 // * UPDATE | PUT
-
 func (p* Products) UpdateProduct(res http.ResponseWriter, req *http.Request) {
 
 	vars := mux.Vars(req)
@@ -51,12 +50,9 @@ func (p* Products) UpdateProduct(res http.ResponseWriter, req *http.Request) {
 	}
 
 	p.l.Println("Handling PUT request", id)
-	product := &data.Product{}
-	err = product.FromJSON(req.Body)
-	if err != nil {
-		http.Error(res, "Unable to unmarshal json", http.StatusBadRequest)
-	}
-	err = data.UpdateProduct(id, product)
+	product := req.Context().Value(KeyProduct{}).(data.Product)
+
+	err = data.UpdateProduct(id, &product)
 
 	if err == data.ErrorProductNotFound {
 		http.Error(res, "Product Not Found", http.StatusNotFound)
@@ -67,4 +63,23 @@ func (p* Products) UpdateProduct(res http.ResponseWriter, req *http.Request) {
 		http.Error(res, "Product Not Found", http.StatusInternalServerError)
 		return
 	}
+}
+
+type KeyProduct struct {
+
+}
+
+func (p Products) MiddlewareProductValidation(nextHandler http.Handler) http.Handler {
+	return http.HandlerFunc(func (res http.ResponseWriter, req *http.Request) {
+		product := data.Product{}
+		err := product.FromJSON(req.Body)
+		if err != nil {
+			p.l.Println("[Error] decentralizing product", err)
+			http.Error(res, "Unable to unmarshal json", http.StatusBadRequest)
+			return
+		}
+		context := context.WithValue(req.Context(), KeyProduct{}, product)
+		req = req.WithContext(context)
+		nextHandler.ServeHTTP(res, req)
+	})	
 }

@@ -28,7 +28,7 @@ func getNextId () int {
 	return lastProduct.ID + 1
 }
 
-func UpdateProduct(id int ,p *Product) error{
+func UpdateProduct(id int , p *Product) error{
 	_, position, err := findProduct(id)
 	if err != nil {
 		return err
