@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/SithumDev07/microservice/handlers"
+	"github.com/gorilla/mux"
 )
 
 func main () {
@@ -18,8 +19,14 @@ func main () {
 	// Handlers
 	productHandler := handlers.NewProducts(l)
 
-	serverMux := http.NewServeMux()
-	serverMux.Handle("/", productHandler)
+	serverMux := mux.NewRouter()
+
+	// * Routers
+	getRouter := serverMux.Methods(http.MethodGet).Subrouter()
+	getRouter.HandleFunc("/", productHandler.GetProducts)
+
+	putRouter := serverMux.Methods(http.MethodPut).Subrouter()
+	putRouter.HandleFunc("/{id:[0-9]+}", productHandler.UpdateProduct)
 
 	server := &http.Server{
 		Addr: ":8081",
