@@ -3,6 +3,8 @@ package handlers
 import (
 	"log"
 	"net/http"
+	"regexp"
+	"strconv"
 
 	"github.com/SithumDev07/microservice/data"
 )
@@ -25,6 +27,35 @@ func (p*Products) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	if req.Method == http.MethodPost {
 		p.addProduct(rw, req)
 		return
+	}
+
+	if req.Method == http.MethodPut {
+		// Expect the id from the URI
+		regex := regexp.MustCompile(`/([0-9]+)`)
+		group := regex.FindAllStringSubmatch(req.URL.Path, -1)
+		
+		if len(group) != 1 {
+			p.l.Println("Invalid URI More than one ID")
+			http.Error(rw, "Invalid URI", http.StatusBadRequest)
+			return
+		}
+		
+		if len(group[0]) != 2 {
+			p.l.Println("Invalid URI More than one capture group")
+			http.Error(rw, "Invalid URI", http.StatusBadRequest)
+			return
+		}
+		
+		idString := group[0][1]
+		id, err := strconv.Atoi(idString)
+		
+		if err != nil {
+			p.l.Println("Unable to convert to number")
+			http.Error(rw, "Invalid URI", http.StatusBadRequest)
+			return
+		}
+		
+		p.l.Println("got id: ", id)
 	}
 
 	// catch All
@@ -50,6 +81,5 @@ func (p *Products) addProduct(rw http.ResponseWriter, req *http.Request) {
 	if err != nil {
 		http.Error(rw, "Unable to unmarshal json", http.StatusBadRequest)
 	}
-
-	p.l.Printf("Product: %#v", product)
+	data.AddProduct(product)
 }
