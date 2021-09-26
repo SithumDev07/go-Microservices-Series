@@ -1,3 +1,17 @@
+// Package classification of Product API
+//
+// Documentation for Product API
+//
+//     Schemes: http
+//     BasePath: /
+//     Version: 1.0.0
+//
+//     Consumes:
+//     - application/json
+//
+//     Produces:
+//     - application/json
+// swagger:meta
 package handlers
 
 import (
@@ -15,11 +29,9 @@ type Products struct {
 	l *log.Logger
 }
 
-func NewProducts(l*log.Logger) *Products {
+func NewProducts(l *log.Logger) *Products {
 	return &Products{l}
 }
-
-
 
 // * GET
 func (p *Products) GetProducts(rw http.ResponseWriter, req *http.Request) {
@@ -29,7 +41,6 @@ func (p *Products) GetProducts(rw http.ResponseWriter, req *http.Request) {
 		http.Error(rw, "Unable to marshal json", http.StatusInternalServerError)
 	}
 }
-
 
 // * POST
 func (p *Products) AddProduct(res http.ResponseWriter, req *http.Request) {
@@ -41,7 +52,7 @@ func (p *Products) AddProduct(res http.ResponseWriter, req *http.Request) {
 }
 
 // * UPDATE | PUT
-func (p* Products) UpdateProduct(res http.ResponseWriter, req *http.Request) {
+func (p *Products) UpdateProduct(res http.ResponseWriter, req *http.Request) {
 
 	vars := mux.Vars(req)
 	id, err := strconv.Atoi(vars["id"])
@@ -59,7 +70,7 @@ func (p* Products) UpdateProduct(res http.ResponseWriter, req *http.Request) {
 		http.Error(res, "Product Not Found", http.StatusNotFound)
 		return
 	}
-	
+
 	if err != nil {
 		http.Error(res, "Product Not Found", http.StatusInternalServerError)
 		return
@@ -67,11 +78,10 @@ func (p* Products) UpdateProduct(res http.ResponseWriter, req *http.Request) {
 }
 
 type KeyProduct struct {
-
 }
 
 func (p Products) MiddlewareProductValidation(nextHandler http.Handler) http.Handler {
-	return http.HandlerFunc(func (res http.ResponseWriter, req *http.Request) {
+	return http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
 		product := data.Product{}
 		err := product.FromJSON(req.Body)
 		if err != nil {
@@ -79,7 +89,7 @@ func (p Products) MiddlewareProductValidation(nextHandler http.Handler) http.Han
 			http.Error(res, "Unable to unmarshal json", http.StatusBadRequest)
 			return
 		}
-		
+
 		//Validate the product
 		err = product.Validate()
 		if err != nil {
@@ -91,5 +101,5 @@ func (p Products) MiddlewareProductValidation(nextHandler http.Handler) http.Han
 		context := context.WithValue(req.Context(), KeyProduct{}, product)
 		req = req.WithContext(context)
 		nextHandler.ServeHTTP(res, req)
-	})	
+	})
 }
