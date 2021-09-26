@@ -25,6 +25,14 @@ import (
 	"github.com/gorilla/mux"
 )
 
+// A list of products returns in the response
+// swagger:response productResponse
+type productResponseWrapper struct {
+	// All products in the system
+	// in: body
+	Body []data.Product
+}
+
 type Products struct {
 	l *log.Logger
 }
@@ -33,7 +41,12 @@ func NewProducts(l *log.Logger) *Products {
 	return &Products{l}
 }
 
-// * GET
+// swagger:route GET /products products listProducts
+// Return a list of products from the database
+// responses:
+//	200: productsResponse
+
+// ListAll handles GET requests and returns all current products
 func (p *Products) GetProducts(rw http.ResponseWriter, req *http.Request) {
 	productList := data.GetProducts()
 	err := productList.ToJSON(rw)

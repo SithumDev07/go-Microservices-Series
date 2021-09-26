@@ -9,10 +9,11 @@ import (
 	"time"
 
 	"github.com/SithumDev07/microservice/handlers"
+	"github.com/go-openapi/runtime/middleware"
 	"github.com/gorilla/mux"
 )
 
-func main () {
+func main() {
 
 	l := log.New(os.Stdout, "product-api", log.LstdFlags)
 
@@ -28,20 +29,25 @@ func main () {
 	putRouter := serverMux.Methods(http.MethodPut).Subrouter()
 	putRouter.HandleFunc("/{id:[0-9]+}", productHandler.UpdateProduct)
 	putRouter.Use(productHandler.MiddlewareProductValidation)
-	
+
 	postRouter := serverMux.Methods(http.MethodPost).Subrouter()
 	postRouter.HandleFunc("/", productHandler.AddProduct)
 	postRouter.Use(productHandler.MiddlewareProductValidation)
 
+	options := middleware.RedocOpts{SpecURL: "/swagger.yaml"}
+	sh := middleware.Redoc(options, nil)
+	getRouter.Handle("/docs", sh)
+	getRouter.Handle("/swagger.yaml", http.FileServer(http.Dir("./")))
+
 	server := &http.Server{
-		Addr: ":8081",
-		Handler: serverMux,
-		IdleTimeout: 120 * time.Second,
-		ReadTimeout: 1 * time.Second,
+		Addr:         ":8081",
+		Handler:      serverMux,
+		IdleTimeout:  120 * time.Second,
+		ReadTimeout:  1 * time.Second,
 		WriteTimeout: 1 * time.Second,
 	}
 
-	go func ()  {
+	go func() {
 		err := server.ListenAndServe()
 		if err != nil {
 			l.Fatal(err)
@@ -52,10 +58,10 @@ func main () {
 	signal.Notify(signalChanel, os.Interrupt)
 	signal.Notify(signalChanel, os.Kill)
 
-	sig := <- signalChanel
+	sig := <-signalChanel
 	l.Println("Recieved terminate, graceful shutdown", sig)
 
-	timeoutContext, _ := context.WithTimeout(context.Background(), 30 * time.Second)
+	timeoutContext, _ := context.WithTimeout(context.Background(), 30*time.Second)
 
 	server.Shutdown(timeoutContext)
 }
